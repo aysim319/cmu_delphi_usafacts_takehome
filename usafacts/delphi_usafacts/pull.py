@@ -7,6 +7,7 @@ import os
 
 import numpy as np
 import pandas as pd
+import pandas.api.types as ptypes
 import requests
 
 # Columns to drop the the data frame.
@@ -162,18 +163,23 @@ def pull_usafacts_data(base_url: str, metric: str, logger: Logger, cache: str=No
 
     # Final sanity checks
     days_by_fips = df.groupby("fips").count()["cumulative_counts"].unique()
-    unique_days = df["timestamp"].unique()
+
+    assert ptypes.is_datetime64_dtype(df["timestamp"])
+    unique_days = set([ts for ts in df["timestamp"]])
     # each FIPS has same number of rows
     if (len(days_by_fips) > 1) or (days_by_fips[0] != len(unique_days)):
         raise ValueError("Differing number of days by fips")
     min_timestamp = min(unique_days)
     max_timestamp = max(unique_days)
-    n_days = (max_timestamp - min_timestamp) / np.timedelta64(1, "D") + 1
-    if n_days != len(unique_days):
-        raise ValueError(
-            f"Not every day between {min_timestamp} and "
-            "{max_timestamp} is represented."
+
+    expected_days =  set(pd.date_range(min_timestamp, max_timestamp, freq='d'))
+    missing_days = [ts.date().strftime('%Y-%m-%d') for ts in expected_days.difference(unique_days)]
+    if missing_days is not None:
+        missing_days.sort()
+        logger.warn(
+            f"Following dates are missing from the dataset: [{' ,'.join(missing_days)}]"
         )
+
     return df.loc[
         df["timestamp"] >= min_ts,
         [  # Reorder

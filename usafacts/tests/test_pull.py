@@ -10,13 +10,17 @@ from test_run import local_fetch
 
 BASE_URL_GOOD = "test_data/small_{metric}_pull.csv"
 
-BASE_URL_BAD = {
-    "missing_days": "test_data/bad_{metric}_missing_days.csv",
+BADCASE_PARAMS = {
+    "missing_days":
+        {"url":"test_data/bad_{metric}_missing_days.csv",
+         "missing_dates": ['2020-03-01', '2020-03-04', '2020-03-05', '2020-03-08']
+         },
     "missing_cols": "test_data/bad_{metric}_missing_cols.csv",
     "extra_cols": "test_data/bad_{metric}_extra_cols.csv"
 }
 
 TEST_LOGGER = logging.getLogger()
+TEST_LOGGER.propagate = True
 
 @patch("delphi_usafacts.pull.fetch", local_fetch)
 class TestPullUSAFacts:
@@ -34,13 +38,12 @@ class TestPullUSAFacts:
         # sort since rows order doesn't matter
         pd.testing.assert_frame_equal(df.sort_index(), expected_df.sort_index())
 
-    def test_missing_days(self):
-
+    def test_missing_days(self, caplog):
         metric = "confirmed"
-        with pytest.raises(ValueError):
-            pull_usafacts_data(
-                BASE_URL_BAD["missing_days"], metric, TEST_LOGGER
-            )
+        pull_usafacts_data(
+            BADCASE_PARAMS["missing_days"]["url"], metric, TEST_LOGGER
+        )
+        assert " ,".join(BADCASE_PARAMS["missing_days"]["missing_dates"]) in caplog.text
 
 
     def test_missing_cols(self):
@@ -48,7 +51,7 @@ class TestPullUSAFacts:
         metric = "confirmed"
         with pytest.raises(ValueError):
             pull_usafacts_data(
-                BASE_URL_BAD["missing_cols"], metric, TEST_LOGGER
+                BADCASE_PARAMS["missing_cols"], metric, TEST_LOGGER
             )
 
     def test_extra_cols(self):
@@ -56,5 +59,5 @@ class TestPullUSAFacts:
         metric = "confirmed"
         with pytest.raises(ValueError):
             pull_usafacts_data(
-                BASE_URL_BAD["extra_cols"], metric, TEST_LOGGER
+                BADCASE_PARAMS["extra_cols"], metric, TEST_LOGGER
             )
