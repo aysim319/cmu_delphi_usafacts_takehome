@@ -51,7 +51,7 @@ class TestPullUSAFacts:
         metric = "confirmed"
         with pytest.raises(ValueError):
             pull_usafacts_data(
-                BADCASE_PARAMS["missing_cols"]["url"], metric, TEST_LOGGER
+                BADCASE_PARAMS["missing_cols"], metric, TEST_LOGGER
             )
 
     def test_extra_cols(self):
@@ -59,5 +59,5 @@ class TestPullUSAFacts:
         metric = "confirmed"
         with pytest.raises(ValueError):
             pull_usafacts_data(
-                BADCASE_PARAMS["extra_cols"]["url"], metric, TEST_LOGGER
+                BADCASE_PARAMS["extra_cols"], metric, TEST_LOGGER
             )
